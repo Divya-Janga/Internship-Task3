@@ -1,0 +1,247 @@
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.util.HashMap;
+import java.util.Map;
+
+public class ELearningPlatform {
+    private JFrame frame;
+    private JPanel mainPanel;
+    private CardLayout cardLayout;
+    private LoginPanel loginPanel;
+    private ProfilePanel profilePanel;
+    private CoursesPanel coursesPanel;
+    private CourseDetailsPanel courseDetailsPanel;
+
+    private Map<String, User> users;
+    private Map<String, Course> courses;
+    private User currentUser;
+
+    public ELearningPlatform() {
+        users = new HashMap<>();
+        courses = new HashMap<>();
+        initializeCourses();
+        
+        frame = new JFrame("E-Learning Platform");
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setSize(800, 600);
+
+        cardLayout = new CardLayout();
+        mainPanel = new JPanel(cardLayout);
+
+        loginPanel = new LoginPanel();
+        profilePanel = new ProfilePanel();
+        coursesPanel = new CoursesPanel();
+        courseDetailsPanel = new CourseDetailsPanel();
+
+        mainPanel.add(loginPanel, "Login");
+        mainPanel.add(profilePanel, "Profile");
+        mainPanel.add(coursesPanel, "Courses");
+        mainPanel.add(courseDetailsPanel, "CourseDetails");
+
+        frame.add(mainPanel);
+        frame.setVisible(true);
+
+        cardLayout.show(mainPanel, "Login");
+    }
+
+    private void initializeCourses() {
+        courses.put("Java Basics", new Course("Java Basics", "Learn the fundamentals of Java programming."));
+        courses.put("Advanced Java", new Course("Advanced Java", "Master advanced Java programming techniques."));
+    }
+
+    private class LoginPanel extends JPanel {
+        private JTextField usernameField;
+
+        public LoginPanel() {
+            setLayout(new BorderLayout());
+
+            JPanel loginForm = new JPanel(new GridLayout(2, 2));
+            loginForm.add(new JLabel("Username:"));
+            usernameField = new JTextField();
+            loginForm.add(usernameField);
+
+            JButton loginButton = new JButton("Login");
+            loginButton.addActionListener(new ActionListener() {
+                public void actionPerformed(ActionEvent e) {
+                    String username = usernameField.getText();
+                    if (!users.containsKey(username)) {
+                        users.put(username, new User(username));
+                    }
+                    currentUser = users.get(username);
+                    profilePanel.setUser(currentUser);
+                    cardLayout.show(mainPanel, "Profile");
+                }
+            });
+            loginForm.add(loginButton);
+
+            add(loginForm, BorderLayout.CENTER);
+        }
+    }
+
+    private class ProfilePanel extends JPanel {
+        private JLabel welcomeLabel;
+
+        public ProfilePanel() {
+            setLayout(new BorderLayout());
+
+            welcomeLabel = new JLabel();
+            add(welcomeLabel, BorderLayout.NORTH);
+
+            JButton viewCoursesButton = new JButton("View Courses");
+            viewCoursesButton.addActionListener(new ActionListener() {
+                public void actionPerformed(ActionEvent e) {
+                    coursesPanel.updateCourses();
+                    cardLayout.show(mainPanel, "Courses");
+                }
+            });
+            add(viewCoursesButton, BorderLayout.CENTER);
+        }
+
+        public void setUser(User user) {
+            welcomeLabel.setText("Welcome, " + user.getUsername());
+        }
+    }
+
+    private class CoursesPanel extends JPanel {
+        public CoursesPanel() {
+            setLayout(new BorderLayout());
+
+            JPanel coursesListPanel = new JPanel(new GridLayout(0, 1));
+            for (Course course : courses.values()) {
+                JButton courseButton = new JButton(course.getTitle());
+                courseButton.addActionListener(new ActionListener() {
+                    public void actionPerformed(ActionEvent e) {
+                        courseDetailsPanel.setCourse(course);
+                        cardLayout.show(mainPanel, "CourseDetails");
+                    }
+                });
+                coursesListPanel.add(courseButton);
+            }
+
+            add(new JScrollPane(coursesListPanel), BorderLayout.CENTER);
+
+            JButton backButton = new JButton("Back to Profile");
+            backButton.addActionListener(new ActionListener() {
+                public void actionPerformed(ActionEvent e) {
+                    cardLayout.show(mainPanel, "Profile");
+                }
+            });
+            add(backButton, BorderLayout.SOUTH);
+        }
+
+        public void updateCourses() {
+            // Refresh the courses list if necessary
+        }
+    }
+
+    private class CourseDetailsPanel extends JPanel {
+        private JLabel courseTitleLabel;
+        private JTextArea courseDescriptionArea;
+        private JButton enrollButton;
+
+        public CourseDetailsPanel() {
+            setLayout(new BorderLayout());
+
+            courseTitleLabel = new JLabel();
+            add(courseTitleLabel, BorderLayout.NORTH);
+
+            courseDescriptionArea = new JTextArea();
+            courseDescriptionArea.setEditable(false);
+            add(new JScrollPane(courseDescriptionArea), BorderLayout.CENTER);
+
+            enrollButton = new JButton("Enroll");
+            enrollButton.addActionListener(new ActionListener() {
+                public void actionPerformed(ActionEvent e) {
+                    currentUser.enrollInCourse(courseTitleLabel.getText());
+                }
+            });
+            add(enrollButton, BorderLayout.SOUTH);
+
+            JButton backButton = new JButton("Back to Courses");
+            backButton.addActionListener(new ActionListener() {
+                public void actionPerformed(ActionEvent e) {
+                    cardLayout.show(mainPanel, "Courses");
+                }
+            });
+            add(backButton, BorderLayout.NORTH);
+        }
+
+        public void setCourse(Course course) {
+            courseTitleLabel.setText(course.getTitle());
+            courseDescriptionArea.setText(course.getDescription());
+        }
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(new Runnable() {
+            public void run() {
+                new ELearningPlatform();
+            }
+        });
+    }
+}
+
+class User {
+    private String username;
+    private Map<String, CourseProgress> enrolledCourses;
+
+    public User(String username) {
+        this.username = username;
+        this.enrolledCourses = new HashMap<>();
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void enrollInCourse(String courseTitle) {
+        if (!enrolledCourses.containsKey(courseTitle)) {
+            enrolledCourses.put(courseTitle, new CourseProgress(courseTitle));
+            System.out.println("Enrolled in " + courseTitle);
+        } else {
+            System.out.println("Already enrolled in " + courseTitle);
+        }
+    }
+}
+
+class Course {
+    private String title;
+    private String description;
+
+    public Course(String title, String description) {
+        this.title = title;
+        this.description = description;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+}
+
+class CourseProgress {
+    private String courseTitle;
+    private int progress;
+
+    public CourseProgress(String courseTitle) {
+        this.courseTitle = courseTitle;
+        this.progress = 0;
+    }
+
+    public String getCourseTitle() {
+        return courseTitle;
+    }
+
+    public int getProgress() {
+        return progress;
+    }
+
+    public void updateProgress(int progress) {
+        this.progress = progress;
+    }
+}
